@@ -1,7 +1,13 @@
 """网页管理元数据与原有不可变快照分离；一个调用流程共享原repository事务。"""
 from pathlib import Path
+from datetime import timezone
 
 from . import codec
+
+
+def management_timestamp(value):
+    """MySQL连接以UTC写入DATETIME；只标注管理时间，不转换样本日期。"""
+    return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value
 
 
 def initialize_workbench(database):
@@ -38,6 +44,7 @@ class WorkbenchRepository:
         for item in items:
             item['metadata'] = codec.loads(item.pop('metadata_json'))
             item['archived'] = bool(item['archived'])
+            item['created_at'] = management_timestamp(item['created_at'])
         return {'items': items, 'total': total}
 
     def dataset(self, identity):
@@ -50,6 +57,7 @@ class WorkbenchRepository:
         snapshot = self.repository.load_dataset(identity)
         item['metadata'] = snapshot.metadata
         item['archived'] = bool(item['archived'])
+        item['created_at'] = management_timestamp(item['created_at'])
         return item, snapshot.frame
 
     def update_dataset(self, identity, name=None, archived=None):
@@ -76,15 +84,21 @@ class WorkbenchRepository:
             items = cursor.fetchall()
         for item in items:
             item['archived'] = bool(item['archived'])
+            item['created_at'] = management_timestamp(item['created_at'])
         return {'items': items, 'total': total}
 
     def record(self, identity):
         row = self.repository.load_calculation(identity)
         ui = self._one('SELECT display_name,archived FROM frm_calculation_ui WHERE run_id=%s', (identity,))
         parameters = row['parameters']
-        modern = isinstance(parameters, dict) and parameters.get('format') == 'workbench-v1'
+        request = parameters.get('request') if isinstance(parameters, dict) else None
+        modern = (isinstance(parameters, dict) and parameters.get('format') == 'workbench-v1'
+                  and isinstance(request, dict)
+                  and isinstance(request.get('dataset_id'), str) and bool(request['dataset_id'].strip())
+                  and isinstance(request.get('operation'), str) and bool(request['operation'].strip())
+                  and isinstance(request.get('parameters'), dict))
         return {'id': identity, 'name': ui['display_name'] if ui else row['operation'],
-                'dataset_id': row['dataset_id'], 'operation': row['operation'], 'created_at': row['created_at'],
+                'dataset_id': row['dataset_id'], 'operation': row['operation'], 'created_at': management_timestamp(row['created_at']),
                 'archived': bool(ui['archived']) if ui else False, 'source_sha256': row['source_sha256'],
                 'legacy': not modern, 'request': parameters['request'] if modern else parameters,
                 'result': row['result'] if modern else {

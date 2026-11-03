@@ -12,10 +12,10 @@ const catalog: Catalog = {
 const frame: Dataset = { id: 'dataset-1', name: '教材例1.3', row_count: 3, column_count: 1, archived: false, columns: ['arithmetic_return'], rows: [{ arithmetic_return: -0.15 }, { arithmetic_return: 0.1 }, { arithmetic_return: 0.35 }], metadata: { fields: { arithmetic_return: { kind: 'arithmetic_return', unit: 'decimal', sign: 'profit' } } } };
 const result: Result = { metrics: [{ name: 'VaR', value: 0.311213, unit: '损失比例' }], tables: [{ name: '模型结果', columns: ['model', 'value'], rows: [{ model: 'normal', value: 0.311213 }] }], charts: [{ title: '损失分布', x_label: '损失比例', y_label: '频数', series: [{ name: '频数', type: 'bar', data: [[-0.35, 1], [-0.1, 1], [0.15, 1]] }], markers: [{ name: 'VaR', value: 0.311213 }] }], notes: ['教材均值0.1、样本标准差0.25'] };
 
-async function fixtures(page: Page, options: { queued?: boolean; empty?: boolean } = {}) {
+async function fixtures(page: Page, options: { queued?: boolean; empty?: boolean; records?: SavedRecord[] } = {}) {
   page.on('pageerror', error => console.error('BROWSER ERROR', error.message));
   let datasets: Dataset[] = options.empty ? [] : [structuredClone(frame)];
-  const jobs: Job[] = []; const records: SavedRecord[] = []; const requests: unknown[] = [];
+  const jobs: Job[] = []; const records: SavedRecord[] = structuredClone(options.records ?? []); const requests: unknown[] = [];
   await page.route('**/api/**', async route => {
     const request = route.request(); const url = new URL(request.url()); const path = url.pathname.replace('/api', ''); const method = request.method();
     const body = request.headers()['content-type']?.includes('application/json') && request.postData() ? request.postDataJSON() : {};
@@ -36,7 +36,7 @@ async function fixtures(page: Page, options: { queued?: boolean; empty?: boolean
     if (path.endsWith('/save')) { const job = jobs.find(j => path.includes(j.id))!; const record: SavedRecord = { id: 'record-1', name: body.name, dataset_id: job.dataset_id, operation: job.operation, archived: false, request: { dataset_id: job.dataset_id, operation: job.operation, parameters: job.parameters }, result: job.result }; records.push(record); job.record_id = record.id; return respond(record); }
     if (path === '/records') { const filtered = records.filter(r => r.archived === (url.searchParams.get('archived') === 'true')); return respond({ items: filtered, total: filtered.length }); }
     if (path === '/records/record-1' && method === 'PATCH') { Object.assign(records[0], body); return respond(records[0]); }
-    if (path === '/records/record-1') return respond(records[0]);
+    if (path.startsWith('/records/')) return respond(records.find(record => record.id === path.split('/')[2]));
     return route.fulfill({ status: 404, json: { detail: `Fixture missing ${method} ${path}` } });
   });
   return { requests, jobs, records };
@@ -125,4 +125,31 @@ test('服务端字段错误清楚呈现且不产生保存记录', async ({ page 
   await expect(page.getByText('样本含缺失值，请显式准备后重试')).toBeVisible();
   expect(state.records).toHaveLength(0);
   await expect(page.getByRole('button', { name: '保存计算记录' })).toHaveCount(0);
+});
+
+test('旧格式、未知操作和损坏请求仅支持查看与导出，不进入永久加载', async ({ page }) => {
+  const records: SavedRecord[] = [
+    { id: 'legacy', name: '旧计算记录', dataset_id: frame.id, operation: 'Chapter1.cal_normal_var', archived: false, legacy: true, request: { confidence: .95 }, result },
+    { id: 'unknown', name: '未知操作记录', dataset_id: frame.id, operation: 'future_operation', archived: false, request: { dataset_id: frame.id, operation: 'future_operation', parameters: {} }, result },
+    { id: 'malformed', name: '不完整参数记录', dataset_id: frame.id, operation: 'var', archived: false, request: { dataset_id: frame.id, operation: 'var', parameters: [] }, result },
+  ];
+  await fixtures(page, { records }); await page.goto('/#records');
+  for (const record of records) {
+    await page.getByRole('button', { name: record.name, exact: true }).click();
+    await expect(page.getByText('此记录仅支持查看和导出')).toBeVisible();
+    await expect(page.getByRole('button', { name: '修改参数后另存' })).toBeDisabled();
+    const config = page.waitForEvent('download');
+    await page.getByRole('dialog').getByRole('button', { name: '配置 JSON' }).click();
+    expect((await config).suggestedFilename()).toBe(`${record.name}.json`);
+    await page.getByRole('dialog').getByRole('button', { name: '关闭', exact: true }).click();
+    await expect(page.getByRole('dialog')).toBeHidden();
+  }
+  await page.getByRole('menuitem', { name: /章节计算$/ }).click();
+  await expect(page.getByRole('button', { name: '开始试算' })).toBeVisible();
+});
+
+test('数据库UTC管理时间按上海本地时间显示', async ({ page }) => {
+  const record: SavedRecord = { id: 'timestamp', name: '时间口径验证', dataset_id: frame.id, operation: 'var', archived: false, created_at: '2026-11-03T03:51:50+00:00', request: { dataset_id: frame.id, operation: 'var', parameters: {} }, result };
+  await fixtures(page, { records: [record] }); await page.goto('/#records');
+  await expect(page.getByRole('row', { name: /时间口径验证/ })).toContainText('11:51:50');
 });

@@ -57,7 +57,7 @@ export default function App() {
         {connectionError && <Alert className="section-gap" showIcon type="error" title="无法连接计算服务" description={connectionError} action={<Button onClick={() => void connect()}>重试连接</Button>} />}
         <section hidden={page !== 'datasets'}><Datasets initialDataset={prepareDataset} onCalculate={dataset => { setSelectedDataset(dataset); navigate('calculate'); }} onChanged={() => setRevision(value => value + 1)} /></section>
         <section hidden={page !== 'calculate'}><Calculate catalog={catalog} revision={revision} selectedDataset={selectedDataset} selectedJob={selectedJob} reopen={reopen} onJob={acceptJob} onSaved={() => setRevision(value => value + 1)} onPrepare={id => { setPrepareDataset(id ? { id, key: Date.now() } : undefined); navigate('datasets'); }} /></section>
-        <section hidden={page !== 'records'}><Records revision={revision} onReopen={request => { setReopen({ request, key: Date.now() }); setSelectedJobId(undefined); navigate('calculate'); }} /></section>
+        <section hidden={page !== 'records'}><Records revision={revision} catalog={catalog} onReopen={request => { setReopen({ request, key: Date.now() }); setSelectedJobId(undefined); navigate('calculate'); }} /></section>
         <footer className="content-footer">数据口径显式确认 · 公式由 Python 计算引擎执行 · 结果按需保存</footer>
       </Layout.Content>
     </Layout>

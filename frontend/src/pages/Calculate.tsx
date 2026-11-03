@@ -104,7 +104,7 @@ export default function Calculate({ catalog, revision, selectedDataset, selected
           </Form>
           <Typography.Paragraph type="secondary" className="section-gap">灰色字段表示其类型、单位或符号不适用于当前模型；请先到数据准备确认口径。前端不会自动转换或删除样本。</Typography.Paragraph>
           <TeachingNote operation={operation} />
-        </> : <Spin />}
+        </> : !catalog ? <Spin /> : <Alert type="warning" title="该计算操作当前不可用" description="请选择上方已接入的模型，或返回默认工作区重新配置。" action={<Button onClick={() => setOperationId(catalog.operations[0]?.id ?? 'var')}>返回可用模型</Button>} />}
         {error && <Alert className="section-gap" showIcon type="error" title={error} />}
       </Card>
       <Card className="section-gap" title="本次试算" extra={selectedJob && <Tag>{selectedJob.operation} · {selectedJob.id.slice(0, 8)}</Tag>}>
