@@ -6,3 +6,9 @@ PyMySQL
 nbformat
 nbclient
 ipykernel
+fastapi>=0.115,<1
+uvicorn>=0.30,<1
+python-multipart>=0.0.18
+openpyxl>=3.1,<4
+xlrd>=2,<3
+httpx>=0.27,<1
