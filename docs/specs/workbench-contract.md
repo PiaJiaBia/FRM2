@@ -2,6 +2,19 @@
 
 规格：market-risk-workbench.md / GitHub #1。以下契约供三个独立worktree并行实施，修改时先通知协调者。
 
+## 第2–18章扩展（GitHub #7）
+
+以下为初版契约的增量，覆盖后文“操作ID固定为四项”的历史限制：
+
+- 新操作通过显式章节注册表加入，ID为 `chN_slug`；既有四个ID保留。catalog每操作新增 `chapter`，新增操作同时含 `example_id`。
+- 参数增加 `columns`（有序多列）、`text`、`json`（数组/对象）和 `boolean`，以及 `required`、`help`。JSON空数组可表示无附加现金流，是合法值；不得解析执行代码。
+- 示例metadata可带 `chapter`，用于进入正确章节。字段口径结构保持原样。
+- HTTP的operation从枚举类型扩为经目录白名单校验的字符串，未知操作在提交时返回422。其余任务、保存、重开、导出接口不变。
+- 附加表与矩阵作为请求参数保存；主DataFrame仍使用不可变dataset快照。章节适配源码纳入记录版本摘要。
+- Result仍使用原有指标、完整表格和line/bar/scatter图；曲面使用明确的期限切片。
+
+覆盖详情见 all-chapters-workbench.md 与 coverage-2-7.md、coverage-8-11.md、coverage-12-18.md。
+
 ## 任务边界
 
 - calculation：拥有 controller/workbench_calculations.py 及其辅助模块、计算适配 notebook；不修改data/api/frontend。实现目录、示例、准备及计算函数。
