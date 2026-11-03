@@ -104,8 +104,9 @@ test('上传预览、显式准备与归档', async ({ page }) => {
   await expect(page.getByText('处理前 3 行 → 处理后 3 行；删除 0 行')).toBeVisible();
   await page.getByRole('checkbox', { name: '我已确认字段含义、单位及正负号' }).check();
   await page.getByRole('button', { name: '保存新数据集' }).click();
+  await expect(page.getByRole('dialog', { name: '导入数据与确认口径' })).toBeHidden();
   await expect(page.getByRole('dialog').getByRole('button', { name: '用于计算' })).toBeVisible();
-  await page.keyboard.press('Escape');
+  await page.getByRole('dialog').getByRole('button', { name: '关闭', exact: true }).click();
   await expect(page.getByRole('dialog')).toBeHidden();
   await page.getByRole('button', { name: '归档', exact: true }).click();
   await page.getByRole('checkbox', { name: '已归档', exact: true }).check();
