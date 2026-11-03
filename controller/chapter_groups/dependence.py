@@ -10,6 +10,7 @@ import pandas as pd
 from scipy.stats import expon, norm, t
 
 from service import load_chapter
+from .tables import index_columns
 
 
 def _p(name, label, kind, default, **extra):
@@ -187,7 +188,7 @@ def _table(name, frame, index=False):
     if isinstance(frame, pd.Series):
         frame = frame.rename('value').rename_axis('name').reset_index()
     elif index:
-        frame = frame.rename_axis('variable').reset_index()
+        frame = index_columns(frame, ['variable'] * frame.index.nlevels)
     frame = frame.copy()
     frame.columns = [str(c) for c in frame.columns]
     return dict(name=name, columns=list(frame.columns), rows=[{k: _scalar(v) for k, v in row.items()} for row in frame.to_dict('records')])
@@ -273,7 +274,7 @@ def calculate(df, metadata, request):
         for _, group in df.groupby(regime):
             if len(group) < 2 or (group[columns].std() <= 0).any():
                 raise ValueError('每个状态至少两个观测且各列方差非零')
-        result = ch.regime_correlations(df, columns, regime).rename_axis(index=['regime', 'variable']).reset_index()
+        result = index_columns(ch.regime_correlations(df, columns, regime), ['regime', 'variable'])
         return _out({'平均不同资产相关': ch.average_pair_correlation(values, columns)}, [_table('状态相关矩阵', result)])
     if key == 'reversion':
         values = _numeric(df, [p['target_column']], 4)
