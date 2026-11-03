@@ -12,6 +12,7 @@ from scipy.stats import gaussian_kde, lognorm, norm
 from service import load_chapter
 from .workbench_catalog import catalog, examples, example_frame
 from .workbench_preparation import numeric_column, prepare_frame, validate_fields
+from . import chapter_registry
 
 __all__ = ['catalog', 'examples', 'example_frame', 'prepare_frame', 'calculate_frame']
 
@@ -291,9 +292,9 @@ def calculate_frame(df, metadata, request):
     validate_fields(df, metadata or {})
     operations = {'var': _var, 'spectral': _spectral, 'standard_error': _standard_error, 'diagnostics': _diagnostics}
     operation = request.get('operation')
-    if operation not in operations:
-        raise ValueError('未知网页计算操作')
     parameters = request.get('parameters') or {}
     if not isinstance(parameters, dict):
         raise ValueError('计算参数必须为对象')
+    if operation not in operations:
+        return chapter_registry.calculate(df, metadata or {}, {'operation': operation, 'parameters': parameters})
     return operations[operation](df, metadata or {}, parameters)

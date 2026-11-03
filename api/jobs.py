@@ -15,8 +15,9 @@ from .serialization import browser_value
 def implementation_fingerprint():
     """同时涵盖纯计算器及网页计算适配，避免只记录底层公式版本。"""
     digest = sha256(source_fingerprint().encode())
-    for path in sorted((Path(__file__).resolve().parents[1] / 'controller').glob('workbench*.py')):
-        digest.update(path.name.encode())
+    controller = Path(__file__).resolve().parents[1] / 'controller'
+    for path in sorted(controller.rglob('*.py')):
+        digest.update(path.relative_to(controller).as_posix().encode())
         digest.update(path.read_bytes())
     return digest.hexdigest()
 

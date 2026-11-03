@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 
 from service.catalog import MANIFEST
+from . import chapter_registry
 
 
 def _select(name, label, choices, default):
@@ -47,11 +48,11 @@ def catalog():
     ]
     return {
         'chapters': [{'number': int(number), 'title': item['title'], 'pages': item['pages'],
-                      'available': number == '1'} for number, item in MANIFEST.items()],
+                      'available': True} for number, item in MANIFEST.items()],
         'operations': [{'id': op, 'name': name, 'workspace': op, 'description': description,
                         'formula': formula, 'pages': pages, 'assumptions': assumptions,
-                        'parameters': parameters}
-                       for op, name, description, formula, pages, assumptions, parameters in definitions],
+                        'parameters': parameters, 'chapter': 1}
+                       for op, name, description, formula, pages, assumptions, parameters in definitions] + chapter_registry.operations(),
     }
 
 
@@ -65,7 +66,7 @@ def examples():
          'description': '固定随机种子生成500个对数收益率及对应算术收益率；不代表真实行情或教材原始数据。'},
         {'id': 'demo_prices', 'name': '价格与现金流演示',
          'description': '固定种子的价格、零现金流及年化贴现率，用于派生P&L和收益率；不是实际持仓。'},
-    ]
+    ] + chapter_registry.examples()
 
 
 def field(kind, unit='decimal', sign='profit'):
@@ -73,6 +74,8 @@ def field(kind, unit='decimal', sign='profit'):
 
 
 def example_frame(example_id):
+    if example_id.startswith('ch'):
+        return chapter_registry.example_frame(example_id)
     entries = {item['id']: item for item in examples()}
     if example_id not in entries:
         raise ValueError('未知教材示例')

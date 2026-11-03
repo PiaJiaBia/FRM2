@@ -195,6 +195,8 @@ def create_app(database=None):
 
     @app.post('/api/jobs')
     def submit_job(body: JobBody):
+        if body.operation not in {item['id'] for item in calculations().catalog()['operations']}:
+            raise HTTPException(status_code=422, detail='未知网页计算操作')
         with database.session() as repository:
             snapshot = repository.load_dataset(body.dataset_id)
         return reply(jobs.submit(body.dataset_id, snapshot.frame, snapshot.metadata, body.operation, body.parameters))

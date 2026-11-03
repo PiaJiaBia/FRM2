@@ -49,7 +49,7 @@ export default function App() {
         { key: 'calculate', icon: <BookOutlined />, label: '章节计算' },
         { key: 'records', icon: <HistoryOutlined />, label: '计算记录' },
       ]} />
-      <div className="sidebar-note"><div className="note-rule" /><Typography.Text strong>从教材到实证</Typography.Text><p>18 章计算引擎<br />第 1 章可视化工作区</p><Tag bordered={false} color="green">个人工作台</Tag></div>
+      <div className="sidebar-note"><div className="note-rule" /><Typography.Text strong>从教材到实证</Typography.Text><p>18 章计算引擎<br />18 章可视化工作区</p><Tag bordered={false} color="green">个人工作台</Tag></div>
       <div className="sidebar-footer">FRM PART II<br /><span>Market Risk Measurement</span></div>
     </Layout.Sider>
     <Layout className="main-layout"><Layout.Header className="topbar"><Space><span className="connection-dot" data-connected={!connectionError} /><Typography.Text type="secondary">{connectionError ? '服务连接待恢复' : '本机工作台'}</Typography.Text><span className="header-divider" /><Typography.Text>Market Risk</Typography.Text></Space><Badge count={running} size="small"><Button icon={<UnorderedListOutlined />} onClick={() => setTasksOpen(true)}>计算任务</Button></Badge></Layout.Header>

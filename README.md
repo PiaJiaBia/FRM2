@@ -2,7 +2,7 @@
 
 ## 浏览器工作台
 
-工作台使用 React、TypeScript、Ant Design、Vite 和 ECharts。Python HTTP接口复用本项目的纯计算器，连接已有MySQL。首版提供第1章完整交互，其余17章显示能力目录和未接入状态。
+工作台使用 React、TypeScript、Ant Design、Vite 和 ECharts。Python HTTP接口复用本项目的纯计算器，连接已有MySQL。18章均提供实际计算操作、参数配置、示例和结果表图。
 
 首次准备（项目根目录）：
 
@@ -27,6 +27,10 @@ npm run dev
 
 基本流程：选择示例或上传CSV/Excel → 预览与确认字段含义/单位/正负号 → 显式数据准备 → 保存数据集 → 选择章节模型试算 → 查看表格/图表 → 手动保存记录或导出。算术和对数收益率不混用；参数法结果为损失比例，尚不进行头寸换算。
 
+第2–18章也可从操作页点击“载入本操作演示并保存数据集”，载入明确标注的合成演示数据和对应默认参数。主表选择已保存数据集；附加表、矩阵、向量使用参数中的JSON数组/对象，并随计算配置完整保存。列名参数可改成自己的字段；利率、波动率、期限、矩阵顺序等口径见每个操作说明。示例不代表真实行情，也不构成现行监管规则实现。
+
+各章覆盖清单：[2–7章](docs/specs/coverage-2-7.md)、[8–11章](docs/specs/coverage-8-11.md)、[12–18章](docs/specs/coverage-12-18.md)。回调函数使用明确的模型族组合，不执行用户输入的Python表达式；波动率曲面显示期限切片与完整表格。
+
 原始数据保留，准备结果保存成有来源记录的新快照。价格派生收益率产生的首行缺失不会自动删除；需要时显式选择删除缺失行后再计算。任务切换页面后仍运行，取消会终止或阻止结果发布。未保存的试算和预览不跨服务重启保留，已保存数据与结果保存在MySQL。记录保存采用当次结果，不在重新打开时偷偷重算。
 
 前端验证：`npm run typecheck`、`npm run build`、`npm test`。计算及HTTP适配验证仍使用配套notebook；详见各notebook中的数据和清理约定。
@@ -34,6 +38,8 @@ npm run dev
 当前受限开发环境的新增Python依赖安装在被忽略的 `outputs/runtime`，可在启动前执行 `$env:PYTHONPATH = "$PWD/outputs/runtime"`；正常安装requirements的环境无需此设置。
 
 规格及任务：[Issue #1](https://github.com/PiaJiaBia/FRM2/issues/1)，实现PR：[PR #6](https://github.com/PiaJiaBia/FRM2/pull/6)。
+
+全部章节扩展：[Issue #7](https://github.com/PiaJiaBia/FRM2/issues/7)、[PR #8](https://github.com/PiaJiaBia/FRM2/pull/8)。
 
 计算器按章节放在 `service` 下，数据层以 DataFrame 为输入输出，controller 串联数据和计算。原有18章公式、注释及教材页码保留在章节计算器中。
 

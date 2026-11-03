@@ -1,3 +1,5 @@
+import { execFileSync } from 'node:child_process';
+import { resolve } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 import type { Dataset, Job, SavedRecord, Result, Catalog } from '../src/types';
 
@@ -12,23 +14,24 @@ const catalog: Catalog = {
 const frame: Dataset = { id: 'dataset-1', name: '教材例1.3', row_count: 3, column_count: 1, archived: false, columns: ['arithmetic_return'], rows: [{ arithmetic_return: -0.15 }, { arithmetic_return: 0.1 }, { arithmetic_return: 0.35 }], metadata: { fields: { arithmetic_return: { kind: 'arithmetic_return', unit: 'decimal', sign: 'profit' } } } };
 const result: Result = { metrics: [{ name: 'VaR', value: 0.311213, unit: '损失比例' }], tables: [{ name: '模型结果', columns: ['model', 'value'], rows: [{ model: 'normal', value: 0.311213 }] }], charts: [{ title: '损失分布', x_label: '损失比例', y_label: '频数', series: [{ name: '频数', type: 'bar', data: [[-0.35, 1], [-0.1, 1], [0.15, 1]] }], markers: [{ name: 'VaR', value: 0.311213 }] }], notes: ['教材均值0.1、样本标准差0.25'] };
 
-async function fixtures(page: Page, options: { queued?: boolean; empty?: boolean; records?: SavedRecord[] } = {}) {
+async function fixtures(page: Page, options: { queued?: boolean; empty?: boolean; records?: SavedRecord[]; catalog?: Catalog; frame?: Dataset } = {}) {
+  const inputFrame = options.frame ?? frame;
   page.on('pageerror', error => console.error('BROWSER ERROR', error.message));
-  let datasets: Dataset[] = options.empty ? [] : [structuredClone(frame)];
+  let datasets: Dataset[] = options.empty ? [] : [structuredClone(inputFrame)];
   const jobs: Job[] = []; const records: SavedRecord[] = structuredClone(options.records ?? []); const requests: unknown[] = [];
   await page.route('**/api/**', async route => {
     const request = route.request(); const url = new URL(request.url()); const path = url.pathname.replace('/api', ''); const method = request.method();
     const body = request.headers()['content-type']?.includes('application/json') && request.postData() ? request.postDataJSON() : {};
     const respond = (value: unknown) => route.fulfill({ json: value });
     if (path === '/health') return respond({ status: 'ok', database: 'FRM' });
-    if (path === '/catalog') return respond(catalog);
+    if (path === '/catalog') return respond(options.catalog ?? catalog);
     if (path === '/examples') return respond({ items: [{ id: 'normal', name: '教材例1.3：正态收益率', description: '构造样本，不是教材原始观测' }] });
-    if (path === '/previews/example' || path === '/previews/upload') return respond({ id: 'preview-1', columns: frame.columns, rows: frame.rows, row_count: 3, metadata: frame.metadata, sheets: path.endsWith('upload') ? ['Sheet1', 'Sheet2'] : [] });
-    if (path.endsWith('/prepare')) return respond({ id: 'preview-2', columns: frame.columns, rows: frame.rows, row_count: 3, metadata: body.metadata ?? frame.metadata, changes: { before_rows: 3, after_rows: 3, dropped_rows: 0, added_columns: [] } });
-    if (path.startsWith('/previews/') && path.endsWith('/save')) { const saved = { ...structuredClone(frame), name: body.name, metadata: body.metadata }; datasets.push(saved); return respond(saved); }
+    if (path === '/previews/example' || path === '/previews/upload') return respond({ id: 'preview-1', columns: inputFrame.columns, rows: inputFrame.rows, row_count: 3, metadata: inputFrame.metadata, sheets: path.endsWith('upload') ? ['Sheet1', 'Sheet2'] : [] });
+    if (path.endsWith('/prepare')) return respond({ id: 'preview-2', columns: inputFrame.columns, rows: inputFrame.rows, row_count: 3, metadata: body.metadata ?? inputFrame.metadata, changes: { before_rows: 3, after_rows: 3, dropped_rows: 0, added_columns: [] } });
+    if (path.startsWith('/previews/') && path.endsWith('/save')) { const saved = { ...structuredClone(inputFrame), name: body.name, metadata: body.metadata }; datasets.push(saved); return respond(saved); }
     if (path === '/datasets') { const filtered = datasets.filter(d => d.archived === (url.searchParams.get('archived') === 'true')); return respond({ items: filtered, total: filtered.length }); }
     if (path === '/datasets/dataset-1' && method === 'PATCH') { datasets = datasets.map(d => ({ ...d, ...body })); return respond(datasets[0]); }
-    if (path === '/datasets/dataset-1') return respond(datasets[0] ?? frame);
+    if (path === '/datasets/dataset-1') return respond(datasets[0] ?? inputFrame);
     if (path.endsWith('/export')) return route.fulfill({ body: url.searchParams.get('format') === 'json' ? JSON.stringify(records[0]?.request) : 'model,value\nnormal,0.311213', contentType: 'text/plain' });
     if (path === '/jobs' && method === 'POST') { requests.push(body); const job: Job = { ...body, id: `job-${jobs.length + 1}`, status: options.queued ? 'running' : 'completed', ...(options.queued ? {} : { result }) }; jobs.push(job); return respond(job); }
     if (path === '/jobs') return respond({ items: jobs });
@@ -152,4 +155,64 @@ test('数据库UTC管理时间按上海本地时间显示', async ({ page }) => 
   const record: SavedRecord = { id: 'timestamp', name: '时间口径验证', dataset_id: frame.id, operation: 'var', archived: false, created_at: '2026-11-03T03:51:50+00:00', request: { dataset_id: frame.id, operation: 'var', parameters: {} }, result };
   await fixtures(page, { records: [record] }); await page.goto('/#records');
   await expect(page.getByRole('row', { name: /时间口径验证/ })).toContainText('11:51:50');
+});
+
+test('跨章复杂参数校验、提交和记录重开', async ({ page }) => {
+  const expanded = structuredClone(catalog);
+  expanded.chapters[9].available = true;
+  expanded.operations.push({ id: 'ch10_copula', chapter: 10, example_id: 'ch10_demo', name: 'Copula 演示', workspace: 'copula', description: '依赖结构演示', formula: 'U = Φ(Z)', pages: '180', assumptions: ['矩阵顺序对应样本列'], parameters: [
+    { name: 'columns', label: '联合样本列', type: 'columns', default: ['arithmetic_return'] },
+    { name: 'correlation', label: '相关矩阵', type: 'json', default: [[1]] },
+    { name: 'seed', label: '随机种子', type: 'number', default: 42 },
+    { name: 'enabled', label: '使用模拟', type: 'boolean', default: true },
+  ] });
+  const state = await fixtures(page, { catalog: expanded }); await page.goto('/');
+  await choose(page, '章节', '第 10 章 · Chapter 10');
+  await expect(page.getByRole('tab', { name: 'Copula 演示' })).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'VaR', exact: true })).toHaveCount(0);
+  await choose(page, '计算数据集', '教材例1.3 · 3 行');
+  await page.getByRole('textbox', { name: '结构化参数 JSON' }).fill('[[1]');
+  await page.getByRole('button', { name: '开始试算' }).click();
+  await expect(page.getByText('请输入有效 JSON 数组或对象')).toBeVisible(); expect(state.requests).toHaveLength(0);
+  for (const primitive of ['42', 'true', 'null']) {
+    await page.getByRole('textbox', { name: '结构化参数 JSON' }).fill(primitive);
+    await page.getByRole('button', { name: '开始试算' }).click();
+    await expect(page.getByText('请输入有效 JSON 数组或对象')).toBeVisible();
+    expect(state.requests).toHaveLength(0);
+  }
+  await page.getByRole('textbox', { name: '结构化参数 JSON' }).fill('[[1]]');
+  await page.getByRole('spinbutton', { name: '随机种子' }).fill('17');
+  await page.getByRole('button', { name: '开始试算' }).click();
+  await expect(page.getByRole('button', { name: '保存计算记录' })).toBeVisible();
+  expect(state.requests).toEqual([{ dataset_id: frame.id, operation: 'ch10_copula', parameters: { columns: ['arithmetic_return'], correlation: [[1]], seed: 17, enabled: true } }]);
+  await page.getByRole('button', { name: '保存计算记录' }).click();
+  await page.getByRole('textbox', { name: '计算记录名称' }).fill('第十章验证');
+  await page.getByRole('button', { name: '确 定' }).click();
+  await page.getByRole('menuitem', { name: /计算记录$/ }).click();
+  await page.getByRole('button', { name: '第十章验证', exact: true }).click();
+  await page.getByRole('button', { name: '修改参数后另存' }).click();
+  await expect(page.getByRole('tab', { name: 'Copula 演示' })).toBeVisible();
+  await expect(page.getByRole('spinbutton', { name: '随机种子' })).toHaveValue('17');
+  await expect(page.getByRole('textbox', { name: '结构化参数 JSON' })).toHaveValue('[\n  [\n    1\n  ]\n]');
+});
+
+
+test('第12章真实树目录允许空现金流数组并提交默认示例', async ({ page }) => {
+  const payload = JSON.parse(execFileSync('python', ['-c', "import json; from controller.chapter_groups.rates import operations, example_frame; op=next(x for x in operations() if x['id']=='ch12_tree'); df, metadata=example_frame(op['example_id']); print(json.dumps({'operation':op,'columns':list(df),'rows':df.to_dict('records'),'metadata':metadata}))"], { cwd: resolve(import.meta.dirname, '../..'), encoding: 'utf8' }));
+  const expanded: Catalog = structuredClone(catalog);
+  expanded.chapters[11].available = true;
+  expanded.operations.push(payload.operation);
+  const treeFrame: Dataset = { id: 'dataset-1', name: '树终端支付', archived: false, row_count: payload.rows.length, column_count: payload.columns.length, columns: payload.columns, rows: payload.rows, metadata: payload.metadata };
+  const state = await fixtures(page, { catalog: expanded, frame: treeFrame });
+  await page.goto('/');
+  const chapterPicker = page.getByRole('combobox', { name: '章节', exact: true });
+  await chapterPicker.click(); await chapterPicker.press('Home');
+  for (let i=0; i<11; i++) await chapterPicker.press('ArrowDown');
+  await chapterPicker.press('Enter');
+  await page.getByRole('button', { name: '载入本操作演示并保存数据集' }).click();
+  await expect(page.getByRole('button', { name: '开始试算' })).toBeEnabled();
+  await page.getByRole('button', { name: '开始试算' }).click();
+  await expect(page.getByRole('button', { name: '保存计算记录' })).toBeVisible();
+  expect(state.requests).toEqual([{ dataset_id: treeFrame.id, operation: 'ch12_tree', parameters: Object.fromEntries(payload.operation.parameters.map((p: {name: string; default: unknown}) => [p.name, p.default])) }]);
+  expect((state.requests[0] as {parameters: {cashflows: unknown}}).parameters.cashflows).toEqual([]);
 });
