@@ -16,7 +16,7 @@
 - `api/all_chapters_test.ipynb`：63操作全部通过真实MySQL、HTTP、spawn子进程、保存、读取、配置及结果一致性检查；138.7秒。测试数据以本次UUID清理，保留用户记录。
 - `controller/workbench_calculations_test.ipynb`：第一章原数值回归通过，目录断言更新为18章。
 - `api/api_test.ipynb`：原HTTP/MySQL/取消/幂等/旧记录等回归通过。
-- 前端原6项浏览器测试和新增跨章复杂参数保存重开测试通过，生产构建通过。已有UI/ECharts分包大于500KB警告保留。
+- 最终8项浏览器测试全部通过：原6项、跨章复杂参数保存重开、真实利率树默认空现金流提交；非法JSON原始类型拒绝回归也通过。生产构建通过。已有UI/ECharts分包大于500KB警告保留。
 - 实际浏览器完成第10章Copula示例载入、500样本试算、图表展示与保存；演示数据和记录供用户继续使用。
 - 唯一service调整为第11章不依赖状态的对冲方法标记staticmethod，原Chapter11 notebook回归通过。
 
