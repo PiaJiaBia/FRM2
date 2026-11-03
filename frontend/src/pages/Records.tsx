@@ -2,13 +2,15 @@ import { useCallback, useEffect, useState } from 'react';
 import { App, Alert, Button, Card, Checkbox, Drawer, Empty, Input, Space, Table, Tag, Typography } from 'antd';
 import { DownloadOutlined, ReloadOutlined } from '@ant-design/icons';
 import { api, download, patch } from '../api';
-import type { CalculationRequest, Page, SavedRecord } from '../types';
+import type { CalculationRequest, Catalog, Page, SavedRecord } from '../types';
 import { ResultView } from '../components/ResultView';
+import { recordRequest } from '../recordRequest';
 
-export default function Records({ revision, onReopen }: { revision: number; onReopen: (request: CalculationRequest) => void }) {
+export default function Records({ revision, catalog, onReopen }: { revision: number; catalog?: Catalog; onReopen: (request: CalculationRequest) => void }) {
   const { message, modal } = App.useApp();
   const [items, setItems] = useState<SavedRecord[]>([]); const [total, setTotal] = useState(0); const [page, setPage] = useState(1);
   const [query, setQuery] = useState(''); const [archived, setArchived] = useState(false); const [loading, setLoading] = useState(false); const [record, setRecord] = useState<SavedRecord>();
+  const reopenRequest = recordRequest(record, catalog);
   const refresh = useCallback(async () => {
     setLoading(true);
     try { const value = await api<Page<SavedRecord>>(`/records?q=${encodeURIComponent(query)}&archived=${archived}&offset=${(page - 1) * 20}&limit=20`); setItems(value.items); setTotal(value.total); }
@@ -29,8 +31,8 @@ export default function Records({ revision, onReopen }: { revision: number; onRe
         { title: '操作', render: (_, row) => <Space><Button size="small" onClick={() => void open(row.id)}>查看</Button><Button size="small" type="text" onClick={() => rename(row)}>命名</Button><Button size="small" type="text" onClick={() => void archive(row)}>{row.archived ? '恢复' : '归档'}</Button></Space> },
       ]} />
     </Card>
-    <Drawer open={!!record} onClose={() => setRecord(undefined)} title={record?.name} width={1120} extra={<Space><Button icon={<DownloadOutlined />} onClick={() => exportRecord('csv')}>CSV</Button><Button icon={<DownloadOutlined />} onClick={() => exportRecord('json')}>配置 JSON</Button><Button type="primary" disabled={!record?.request} onClick={() => { if (record?.request) onReopen({ ...record.request, dataset_id: record.request.dataset_id ?? record.dataset_id, operation: record.request.operation ?? record.operation }); setRecord(undefined); }}>修改参数后另存</Button></Space>}>
-      {record && <div className="result-stack"><Alert type="info" title="保存时的结果快照" description="这里展示已保存结果，不自动重新计算。修改参数将创建新的任务和记录。" /><Typography.Text type="secondary" copyable>输入数据集：{record.dataset_id}</Typography.Text><pre className="metadata">{JSON.stringify(record.request, null, 2)}</pre>{record.result ? <ResultView result={record.result} /> : <Empty description="这条旧记录没有工作台格式的图表结果，可导出查看。" />}</div>}
+    <Drawer open={!!record} onClose={() => setRecord(undefined)} title={record?.name} width={1120} extra={<Space><Button icon={<DownloadOutlined />} onClick={() => exportRecord('csv')}>CSV</Button><Button icon={<DownloadOutlined />} onClick={() => exportRecord('json')}>配置 JSON</Button><Button type="primary" disabled={!reopenRequest} onClick={() => { if (reopenRequest) { onReopen(reopenRequest); setRecord(undefined); } }}>修改参数后另存</Button></Space>}>
+      {record && <div className="result-stack"><Alert type="info" title="保存时的结果快照" description="这里展示已保存结果，不自动重新计算。修改参数将创建新的任务和记录。" />{catalog && !reopenRequest && <Alert type="warning" title="此记录仅支持查看和导出" description="记录来自旧格式、操作尚未接入或参数结构不完整。请到章节计算选择数据集与可用模型重新配置。" />}<Typography.Text type="secondary" copyable>输入数据集：{record.dataset_id}</Typography.Text><pre className="metadata">{JSON.stringify(record.request, null, 2)}</pre>{record.result ? <ResultView result={record.result} /> : <Empty description="这条旧记录没有工作台格式的图表结果，可导出查看。" />}</div>}
     </Drawer>
   </>;
 }

@@ -13,6 +13,7 @@ import pymysql
 
 from data import Database, MySQLConfig
 from data.workbench_repository import WorkbenchRepository
+from controller.field_metadata import validate_field_metadata
 from .jobs import JobManager
 from .models import ExampleBody, JobBody, NameBody, PrepareBody, SavePreviewBody, UpdateBody
 from .previews import PreviewStore, read_upload
@@ -30,16 +31,7 @@ def metadata_with_fields(original, replacement, columns):
     if replacement is not None:
         # 来源与血缘由服务端维护；调用方只能编辑样本口径。
         result.update({k: deepcopy(v) for k, v in replacement.items() if k not in ('source', 'lineage')})
-    fields = result.get('fields', {})
-    if not isinstance(fields, dict):
-        raise ValueError('字段口径必须是按列名组织的对象')
-    kinds = {'date', 'price', 'payment', 'rate', 'arithmetic_return', 'geometric_return', 'pnl', 'loss', 'other'}
-    units = {'decimal', 'percent', 'amount', 'date', 'other'}
-    for name, spec in fields.items():
-        if name not in columns:
-            raise ValueError(f'字段不存在：{name}')
-        if not isinstance(spec, dict) or spec.get('kind') not in kinds or spec.get('unit') not in units or spec.get('sign') not in {'profit', 'loss', 'none'}:
-            raise ValueError(f'请确认字段 {name} 的含义、单位和正负号')
+    validate_field_metadata(columns, result)
     return result
 
 

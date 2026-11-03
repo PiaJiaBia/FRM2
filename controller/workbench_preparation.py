@@ -6,6 +6,7 @@ import pandas as pd
 
 from service import load_chapter
 from .workbench_catalog import field
+from .field_metadata import validate_field_metadata
 
 
 def numeric_column(df, name, minimum=1, allow_missing=False):
@@ -23,24 +24,7 @@ def numeric_column(df, name, minimum=1, allow_missing=False):
 
 
 def validate_fields(df, metadata):
-    if not isinstance(metadata, dict):
-        raise ValueError('数据元信息必须为对象')
-    if not df.columns.is_unique or not all(isinstance(c, str) for c in df.columns):
-        raise ValueError('网页数据列名必须是唯一字符串')
-    fields = metadata.get('fields', {})
-    if not isinstance(fields, dict):
-        raise ValueError('字段元数据 fields 必须为对象')
-    for name, spec in fields.items():
-        if name not in df.columns:
-            raise ValueError(f'字段元数据包含不存在的列 {name}')
-        if not isinstance(spec, dict):
-            raise ValueError(f'字段 {name} 的口径必须为对象')
-        if spec.get('kind') not in {'date', 'price', 'payment', 'rate', 'arithmetic_return', 'geometric_return', 'pnl', 'loss', 'other'}:
-            raise ValueError(f'字段 {name} 需要有效的含义 kind')
-        if spec.get('unit') not in {'decimal', 'percent', 'amount', 'date', 'other'}:
-            raise ValueError(f'字段 {name} 需要有效的单位 unit')
-        if spec.get('sign') not in {'profit', 'loss', 'none'}:
-            raise ValueError(f'字段 {name} 需要明确正负号约定 sign')
+    validate_field_metadata(df.columns, metadata)
 
 
 def prepare_frame(df, metadata, options):
