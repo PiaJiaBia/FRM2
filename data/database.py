@@ -23,7 +23,7 @@ class MySQLConfig:
     @classmethod
     def load(cls, path=None):
         """环境变量FRM_MYSQL_*优先；默认本机配置config/mysql.local.toml。"""
-        path = Path(path) if path else ROOT / 'config/mysql.local.toml'
+        path = Path(path or os.environ.get('FRM_MYSQL_CONFIG', ROOT / 'config/mysql.local.toml'))
         settings = tomllib.loads(path.read_text(encoding='utf-8')).get('mysql', {}) if path.exists() else {}
         for name in cls.__dataclass_fields__:
             value = os.environ.get('FRM_MYSQL_' + name.upper())
