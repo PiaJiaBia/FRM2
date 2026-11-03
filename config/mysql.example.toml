@@ -1,0 +1,8 @@
+# Copy to mysql.local.toml (git-ignored), or use FRM_MYSQL_* environment variables.
+[mysql]
+host = "127.0.0.1"
+port = 3306
+user = "your_user"
+password = ""
+database = "FRM"
+connect_timeout = 5

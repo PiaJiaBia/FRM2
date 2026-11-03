@@ -1,0 +1,145 @@
+{
+  "1": {
+    "title": "Estimating Market Risk Measures",
+    "pages": "2–16",
+    "module": "market_risk_calculator",
+    "notebook": "Chapter1_test.ipynb",
+    "code_cells": 16
+  },
+  "2": {
+    "title": "Non-Parametric Approaches",
+    "pages": "18–34",
+    "module": "historical_calculator",
+    "checks": 2,
+    "notebook": "Chapter2_test.ipynb",
+    "code_cells": 4
+  },
+  "3": {
+    "title": "Parametric Approaches (II): Extreme Value",
+    "pages": "36–47",
+    "module": "extreme_value_calculator",
+    "checks": 2,
+    "notebook": "Chapter3_test.ipynb",
+    "code_cells": 4
+  },
+  "4": {
+    "title": "Backtesting VaR",
+    "pages": "50–57",
+    "module": "backtest_calculator",
+    "checks": 1,
+    "notebook": "Chapter4_test.ipynb",
+    "code_cells": 2
+  },
+  "5": {
+    "title": "VaR Mapping",
+    "pages": "60–72",
+    "module": "mapping_calculator",
+    "checks": 2,
+    "notebook": "Chapter5_test.ipynb",
+    "code_cells": 4
+  },
+  "6": {
+    "title": "Validating VaR Models",
+    "pages": "74–84",
+    "module": "validation_calculator",
+    "checks": 1,
+    "notebook": "Chapter6_test.ipynb",
+    "code_cells": 3
+  },
+  "7": {
+    "title": "Backtesting the Entire Distribution Using PIT",
+    "pages": "89–100",
+    "module": "pit_calculator",
+    "checks": 2,
+    "notebook": "Chapter7_test.ipynb",
+    "code_cells": 4
+  },
+  "8": {
+    "title": "Correlation Basics",
+    "pages": "102–120",
+    "module": "correlation_calculator",
+    "checks": 2,
+    "notebook": "Chapter8_test.ipynb",
+    "code_cells": 4
+  },
+  "9": {
+    "title": "Empirical Properties of Correlation",
+    "pages": "122–128",
+    "module": "empirical_correlation_calculator",
+    "checks": 1,
+    "notebook": "Chapter9_test.ipynb",
+    "code_cells": 3
+  },
+  "10": {
+    "title": "Financial Correlation Modeling — Bottom-Up Approaches",
+    "pages": "130–133",
+    "module": "copula_calculator",
+    "checks": 2,
+    "notebook": "Chapter10_test.ipynb",
+    "code_cells": 4
+  },
+  "11": {
+    "title": "Regression Hedging and Principal Component Analysis",
+    "pages": "136–145",
+    "module": "hedging_calculator",
+    "checks": 2,
+    "notebook": "Chapter11_test.ipynb",
+    "code_cells": 4
+  },
+  "12": {
+    "title": "Arbitrage Pricing with Term Structure Models",
+    "pages": "148–156",
+    "module": "tree_calculator",
+    "checks": 2,
+    "notebook": "Chapter12_test.ipynb",
+    "code_cells": 4
+  },
+  "13": {
+    "title": "Expectations, Risk Premium, Convexity and the Term Structure",
+    "pages": "160–163",
+    "module": "forward_decomposition_calculator",
+    "checks": 1,
+    "notebook": "Chapter13_test.ipynb",
+    "code_cells": 3
+  },
+  "14": {
+    "title": "The Art of Term Structure Models: Drift",
+    "pages": "166–175",
+    "module": "short_rate_calculator",
+    "checks": 2,
+    "notebook": "Chapter14_test.ipynb",
+    "code_cells": 4
+  },
+  "15": {
+    "title": "Term Structure Models: Volatility and Distribution",
+    "pages": "178–182",
+    "module": "volatility_model_calculator",
+    "checks": 2,
+    "notebook": "Chapter15_test.ipynb",
+    "code_cells": 4
+  },
+  "16": {
+    "title": "The Vasicek and Gauss+ Models",
+    "pages": "184–191",
+    "module": "gauss_plus_calculator",
+    "checks": 2,
+    "notebook": "Chapter16_test.ipynb",
+    "code_cells": 4
+  },
+  "17": {
+    "title": "Volatility Smiles and Volatility Surfaces",
+    "pages": "194–204",
+    "module": "volatility_surface_calculator",
+    "checks": 3,
+    "notebook": "Chapter17_test.ipynb",
+    "code_cells": 5
+  },
+  "18": {
+    "title": "Fundamental Review of the Trading Book",
+    "pages": "206–212",
+    "module": "trading_book_calculator",
+    "checks": 2,
+    "notebook": "Chapter18_test.ipynb",
+    "code_cells": 4
+  }
+}

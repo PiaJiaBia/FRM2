@@ -218,3 +218,18 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local textbook extraction and notebook execution dependencies/cache
+outputs/runtime/
+outputs/textbook/
+outputs/verification/kernels/
+outputs/verification/jupyter/
+outputs/verification/ipython/
+
+# Per-machine database credentials
+config/mysql.local.toml
+node_modules/
+frontend/dist/
+playwright-report/
+test-results/
+.worktrees/
