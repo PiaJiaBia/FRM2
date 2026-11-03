@@ -49,6 +49,7 @@ class PrincipalComponents:
     def explained_variance(self):
         return pd.Series(self.eigenvalues/self.eigenvalues.sum(),name='explained_variance')
 
-    def hedge_positions(self, target, hedges):
+    @staticmethod
+    def hedge_positions(target, hedges):
         """p.145：target 一行 k 因子敞口，hedges 为 k 个工具的 k 因子敞口。"""
         return pd.Series(np.linalg.solve(hedges.to_numpy().T,-target.to_numpy().ravel()),index=hedges.index)
