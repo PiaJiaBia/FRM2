@@ -45,5 +45,5 @@ class UpdateBody(Body):
 
 class JobBody(Body):
     dataset_id: str
-    operation: Literal['var', 'spectral', 'standard_error', 'diagnostics']
+    operation: str = Field(min_length=1, max_length=100)
     parameters: dict[str, Any] = Field(default_factory=dict)

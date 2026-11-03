@@ -12,7 +12,7 @@ const catalog: Catalog = {
 const frame: Dataset = { id: 'dataset-1', name: '教材例1.3', row_count: 3, column_count: 1, archived: false, columns: ['arithmetic_return'], rows: [{ arithmetic_return: -0.15 }, { arithmetic_return: 0.1 }, { arithmetic_return: 0.35 }], metadata: { fields: { arithmetic_return: { kind: 'arithmetic_return', unit: 'decimal', sign: 'profit' } } } };
 const result: Result = { metrics: [{ name: 'VaR', value: 0.311213, unit: '损失比例' }], tables: [{ name: '模型结果', columns: ['model', 'value'], rows: [{ model: 'normal', value: 0.311213 }] }], charts: [{ title: '损失分布', x_label: '损失比例', y_label: '频数', series: [{ name: '频数', type: 'bar', data: [[-0.35, 1], [-0.1, 1], [0.15, 1]] }], markers: [{ name: 'VaR', value: 0.311213 }] }], notes: ['教材均值0.1、样本标准差0.25'] };
 
-async function fixtures(page: Page, options: { queued?: boolean; empty?: boolean; records?: SavedRecord[] } = {}) {
+async function fixtures(page: Page, options: { queued?: boolean; empty?: boolean; records?: SavedRecord[]; catalog?: Catalog } = {}) {
   page.on('pageerror', error => console.error('BROWSER ERROR', error.message));
   let datasets: Dataset[] = options.empty ? [] : [structuredClone(frame)];
   const jobs: Job[] = []; const records: SavedRecord[] = structuredClone(options.records ?? []); const requests: unknown[] = [];
@@ -21,7 +21,7 @@ async function fixtures(page: Page, options: { queued?: boolean; empty?: boolean
     const body = request.headers()['content-type']?.includes('application/json') && request.postData() ? request.postDataJSON() : {};
     const respond = (value: unknown) => route.fulfill({ json: value });
     if (path === '/health') return respond({ status: 'ok', database: 'FRM' });
-    if (path === '/catalog') return respond(catalog);
+    if (path === '/catalog') return respond(options.catalog ?? catalog);
     if (path === '/examples') return respond({ items: [{ id: 'normal', name: '教材例1.3：正态收益率', description: '构造样本，不是教材原始观测' }] });
     if (path === '/previews/example' || path === '/previews/upload') return respond({ id: 'preview-1', columns: frame.columns, rows: frame.rows, row_count: 3, metadata: frame.metadata, sheets: path.endsWith('upload') ? ['Sheet1', 'Sheet2'] : [] });
     if (path.endsWith('/prepare')) return respond({ id: 'preview-2', columns: frame.columns, rows: frame.rows, row_count: 3, metadata: body.metadata ?? frame.metadata, changes: { before_rows: 3, after_rows: 3, dropped_rows: 0, added_columns: [] } });
@@ -152,4 +152,37 @@ test('数据库UTC管理时间按上海本地时间显示', async ({ page }) => 
   const record: SavedRecord = { id: 'timestamp', name: '时间口径验证', dataset_id: frame.id, operation: 'var', archived: false, created_at: '2026-11-03T03:51:50+00:00', request: { dataset_id: frame.id, operation: 'var', parameters: {} }, result };
   await fixtures(page, { records: [record] }); await page.goto('/#records');
   await expect(page.getByRole('row', { name: /时间口径验证/ })).toContainText('11:51:50');
+});
+
+test('跨章复杂参数校验、提交和记录重开', async ({ page }) => {
+  const expanded = structuredClone(catalog);
+  expanded.chapters[9].available = true;
+  expanded.operations.push({ id: 'ch10_copula', chapter: 10, example_id: 'ch10_demo', name: 'Copula 演示', workspace: 'copula', description: '依赖结构演示', formula: 'U = Φ(Z)', pages: '180', assumptions: ['矩阵顺序对应样本列'], parameters: [
+    { name: 'columns', label: '联合样本列', type: 'columns', default: ['arithmetic_return'] },
+    { name: 'correlation', label: '相关矩阵', type: 'json', default: [[1]] },
+    { name: 'seed', label: '随机种子', type: 'number', default: 42 },
+    { name: 'enabled', label: '使用模拟', type: 'boolean', default: true },
+  ] });
+  const state = await fixtures(page, { catalog: expanded }); await page.goto('/');
+  await choose(page, '章节', '第 10 章 · Chapter 10');
+  await expect(page.getByRole('tab', { name: 'Copula 演示' })).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'VaR', exact: true })).toHaveCount(0);
+  await choose(page, '计算数据集', '教材例1.3 · 3 行');
+  await page.getByRole('textbox', { name: '结构化参数 JSON' }).fill('[[1]');
+  await page.getByRole('button', { name: '开始试算' }).click();
+  await expect(page.getByText('请输入有效 JSON 数组或对象')).toBeVisible(); expect(state.requests).toHaveLength(0);
+  await page.getByRole('textbox', { name: '结构化参数 JSON' }).fill('[[1]]');
+  await page.getByRole('spinbutton', { name: '随机种子' }).fill('17');
+  await page.getByRole('button', { name: '开始试算' }).click();
+  await expect(page.getByRole('button', { name: '保存计算记录' })).toBeVisible();
+  expect(state.requests).toEqual([{ dataset_id: frame.id, operation: 'ch10_copula', parameters: { columns: ['arithmetic_return'], correlation: [[1]], seed: 17, enabled: true } }]);
+  await page.getByRole('button', { name: '保存计算记录' }).click();
+  await page.getByRole('textbox', { name: '计算记录名称' }).fill('第十章验证');
+  await page.getByRole('button', { name: '确 定' }).click();
+  await page.getByRole('menuitem', { name: /计算记录$/ }).click();
+  await page.getByRole('button', { name: '第十章验证', exact: true }).click();
+  await page.getByRole('button', { name: '修改参数后另存' }).click();
+  await expect(page.getByRole('tab', { name: 'Copula 演示' })).toBeVisible();
+  await expect(page.getByRole('spinbutton', { name: '随机种子' })).toHaveValue('17');
+  await expect(page.getByRole('textbox', { name: '结构化参数 JSON' })).toHaveValue('[\n  [\n    1\n  ]\n]');
 });
