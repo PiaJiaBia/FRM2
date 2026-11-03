@@ -104,4 +104,4 @@
 
 - 本规格综合此前已确认的全部质询结果，不重新启动需求访谈。
 - 当前仓库已有18章纯计算器、notebook及数据库编排，尚无前端和HTTP接口；实施不得把现有Python类接口误认为浏览器可直接调用的API。
-- GitHub Issue目标仓库为PiaJiaBia/FRM2，发布时应用ready-for-agent标签。此本地文件是待发布正文草稿，不替代GitHub任务系统。
+- GitHub Issue仓库为PiaJiaBia/FRM2，规格已发布为#1并应用ready-for-agent标签；实现及验证见PR#6。本地文档是规格工作副本，GitHub Issues为任务系统。
