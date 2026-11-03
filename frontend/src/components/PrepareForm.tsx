@@ -8,12 +8,13 @@ export function PrepareForm({ columns, busy, onPrepare }: { columns: string[]; b
   const [form] = Form.useForm<Values>();
   const colOptions = columns.map(value => ({ value, label: value }));
   const renames = Form.useWatch('rename', form) ?? [];
+  const derivations = Form.useWatch('derive', form) ?? [];
   const preparedColumns = columns.map(column => renames.find((item: { from?: string; to?: string } | undefined) => item?.from === column)?.to || column);
   const preparedOptions = preparedColumns.map(value => ({ value, label: value }));
   const submit = (values: Values) => {
     const options: PrepareOptions = { date_column: values.date_column, sort_by: values.sort_by, dropna_columns: values.dropna_columns, conversions: values.conversions };
     if (values.rename?.length) options.rename = Object.fromEntries(values.rename.map(item => [item.from, item.to]));
-    if (values.derive?.length) options.derive = values.derive.map(({ operation, ...parameters }) => ({ operation, parameters: Object.fromEntries(Object.entries(parameters).filter(([, value]) => value !== undefined && value !== '')) }));
+    if (values.derive?.length) options.derive = values.derive.map(({ operation, ...parameters }) => ({ operation, parameters: Object.fromEntries(Object.entries(parameters).filter(([key, value]) => value !== undefined && value !== '' && (['pvpnl', 'fvpnl'].includes(operation) || !['rate_column', 'periods_per_year'].includes(key)))) }));
     onPrepare(options);
   };
   return <Form form={form} layout="vertical" onFinish={submit}>
@@ -33,8 +34,8 @@ export function PrepareForm({ columns, busy, onPrepare }: { columns: string[]; b
       <Form.Item label="计算方式" name={[field.name, 'operation']} rules={[{ required: true }]}><Select options={[{ value: 'pnl', label: '期间 P&L' }, { value: 'pvpnl', label: '现值 P&L' }, { value: 'fvpnl', label: '终值 P&L' }, { value: 'arithmetic_return', label: '算术收益率' }, { value: 'geometric_return', label: '对数收益率' }]} /></Form.Item>
       <Form.Item label="价格/账面价值列" name={[field.name, 'value_column']} rules={[{ required: true }]}><Select options={preparedOptions} /></Form.Item>
       <Form.Item label="期间现金流列" name={[field.name, 'payment_column']} rules={[{ required: true }]}><Select options={preparedOptions} /></Form.Item>
-      <Form.Item label="利率列（PV/FV）" name={[field.name, 'rate_column']}><Select allowClear options={preparedOptions} /></Form.Item>
-      <Form.Item label="每年期数（PV/FV）" name={[field.name, 'periods_per_year']}><InputNumber min={1} /></Form.Item>
+      {['pvpnl', 'fvpnl'].includes(derivations[field.name]?.operation) && <><Form.Item label="利率列（PV/FV）" name={[field.name, 'rate_column']} rules={[{ required: true }]}><Select options={preparedOptions} /></Form.Item>
+      <Form.Item label="每年期数（PV/FV）" name={[field.name, 'periods_per_year']} rules={[{ required: true }]}><InputNumber min={1} /></Form.Item></>}
       <Button type="text" aria-label="删除派生" icon={<MinusCircleOutlined />} onClick={() => remove(field.name)} />
     </div>)}<Button type="dashed" size="small" icon={<PlusOutlined />} onClick={() => add({ operation: 'arithmetic_return', periods_per_year: 252 })}>添加计算</Button></div>}</Form.List>
     <Button type="primary" htmlType="submit" loading={busy}>生成处理预览</Button>

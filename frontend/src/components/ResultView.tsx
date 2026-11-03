@@ -17,11 +17,15 @@ function Chart({ data }: { data: ChartData }) {
     if (!container.current) return;
     const chart = echarts.init(container.current); instance.current = chart;
     const categorical = data.series.some(s => s.data.some(point => typeof point[0] === 'string'));
+    const positions = [...data.series.flatMap(series => series.data.map(point => point[0])), ...(data.markers ?? []).map(marker => marker.value), ...(data.areas ?? []).flatMap(area => [area.from, area.to])].filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
+    const low = positions.length ? Math.min(...positions) : 0;
+    const high = positions.length ? Math.max(...positions) : 1;
+    const margin = (high - low || Math.abs(high) || 1) * 0.05;
     chart.setOption({
       color: ['#176b62', '#cf8b35', '#6575c4', '#ce6574'], animation: false,
       tooltip: { trigger: 'axis', confine: true }, legend: { top: 0 },
       grid: { left: 65, right: 30, top: 48, bottom: 65, containLabel: true },
-      xAxis: { type: categorical ? 'category' : 'value', name: data.x_label, nameLocation: 'middle', nameGap: 35, axisLabel: { hideOverlap: true } },
+      xAxis: { type: categorical ? 'category' : 'value', ...(!categorical ? { min: low - margin, max: high + margin } : {}), name: data.x_label, nameLocation: 'middle', nameGap: 35, axisLabel: { hideOverlap: true } },
       yAxis: { type: 'value', name: data.y_label, splitLine: { lineStyle: { color: '#edf0f2' } } },
       dataZoom: [{ type: 'inside' }, { type: 'slider', height: 14, bottom: 5 }],
       series: data.series.map((series, i) => ({ ...series, showSymbol: series.type === 'scatter', symbolSize: 5, connectNulls: false,

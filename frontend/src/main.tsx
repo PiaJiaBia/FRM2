@@ -7,7 +7,7 @@ import './style.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode><ConfigProvider locale={zhCN} theme={{ token: {
-    colorPrimary: '#176b62', colorInfo: '#176b62', borderRadius: 8, fontSize: 14,
+    colorPrimary: '#176b62', colorInfo: '#176b62', colorInfoBg: '#eff7f4', colorInfoBorder: '#c8e1d7', controlItemBgActive: '#e6f2ed', borderRadius: 8, fontSize: 14,
     fontFamily: 'Inter, "Segoe UI", "Microsoft YaHei", sans-serif', colorBgLayout: '#f5f6f8',
   } }}><AntApp><App /></AntApp></ConfigProvider></React.StrictMode>,
 );
