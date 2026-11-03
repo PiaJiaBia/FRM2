@@ -364,9 +364,8 @@ def calculate(df, metadata, request):
         if len(columns) > 50 or len(df) != len(columns) or np.linalg.matrix_rank(exposures) != len(columns):
             raise ValueError('因子敞口矩阵必须为至多50维可逆方阵')
         target = pd.DataFrame([_vector(p['target_exposures'], len(columns), '目标敞口')], columns=columns)
-        # hedge_positions uses only the supplied factor exposures; no fitted PCA state.
-        model = object.__new__(ch.PrincipalComponents)
-        positions = model.hedge_positions(target, exposures)
+        # Factor hedging uses supplied exposures, independent of any fitted PCA state.
+        positions = ch.PrincipalComponents.hedge_positions(target, exposures)
         residual = exposures.to_numpy().T @ positions.to_numpy() + target.to_numpy().ravel()
         return _out({'最大绝对残余因子敞口': np.abs(residual).max()}, [_table('工具对冲数量', positions), _table('残余因子敞口', pd.Series(residual, index=columns))])
     raise ValueError('操作未实现')

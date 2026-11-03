@@ -1,6 +1,6 @@
 # 第8–11章接入覆盖
 
-对应 GitHub Issue #7。实现位于 `controller/chapter_groups/dependence.py`，验证位于 `controller/dependence_chapters_test.ipynb`。公式调用现有 service，调用边界负责有限值、维数、正定性、概率域及计算量检查，不修改计算器、样本、单位或顺序。
+对应 GitHub Issue #7。实现位于 `controller/chapter_groups/dependence.py`，验证位于 `controller/dependence_chapters_test.ipynb`。公式调用现有 service，调用边界负责有限值、维数、正定性、概率域及计算量检查，不修改公式、样本、单位或顺序。
 
 ## 操作与教材页码
 
@@ -22,6 +22,8 @@
 | 11 | ch11_factor_hedge | PrincipalComponents.hedge_positions | 145 |
 
 上述四章所有公开计算函数、类和公开计算方法均已接入。函数内部使用的分布函数不是独立网页操作。任意 Python 回调不开放给网页：边际映射通过固定分布白名单配置替代可执行表达式。Student-t 和秩相关选项是现有通用接口的实例化扩展，不声称是教材另给的公式。
+
+唯一 service 接口调整：`PrincipalComponents.hedge_positions` 不依赖拟合状态，标记为 `staticmethod`，允许直接按给定因子敞口求解；原有实例调用保持兼容，公式不变。原第11章 notebook 全部代码单元回归通过。
 
 ## 输入与输出
 
