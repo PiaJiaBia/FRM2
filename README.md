@@ -1,5 +1,40 @@
 # FRM 教材计算项目
 
+## 浏览器工作台
+
+工作台使用 React、TypeScript、Ant Design、Vite 和 ECharts。Python HTTP接口复用本项目的纯计算器，连接已有MySQL。首版提供第1章完整交互，其余17章显示能力目录和未接入状态。
+
+首次准备（项目根目录）：
+
+```powershell
+python -m pip install -r requirements.txt
+python -m api init-db
+cd frontend
+npm ci
+```
+
+分别在两个终端启动：
+
+```powershell
+# 终端一，项目根目录
+python -m api
+
+# 终端二，frontend目录
+npm run dev
+```
+
+打开 `http://127.0.0.1:5173`；API默认使用本机8000端口。MySQL配置仍由后端读取，可以设置 `FRM_MYSQL_CONFIG` 指向另一份本机TOML。凭据不进入浏览器和版本库。初始化只新增工作台配套表，不覆盖旧数据。
+
+基本流程：选择示例或上传CSV/Excel → 预览与确认字段含义/单位/正负号 → 显式数据准备 → 保存数据集 → 选择章节模型试算 → 查看表格/图表 → 手动保存记录或导出。算术和对数收益率不混用；参数法结果为损失比例，尚不进行头寸换算。
+
+原始数据保留，准备结果保存成有来源记录的新快照。价格派生收益率产生的首行缺失不会自动删除；需要时显式选择删除缺失行后再计算。任务切换页面后仍运行，取消会终止或阻止结果发布。未保存的试算和预览不跨服务重启保留，已保存数据与结果保存在MySQL。记录保存采用当次结果，不在重新打开时偷偷重算。
+
+前端验证：`npm run typecheck`、`npm run build`、`npm test`。计算及HTTP适配验证仍使用配套notebook；详见各notebook中的数据和清理约定。
+
+当前受限开发环境的新增Python依赖安装在被忽略的 `outputs/runtime`，可在启动前执行 `$env:PYTHONPATH = "$PWD/outputs/runtime"`；正常安装requirements的环境无需此设置。
+
+规格及任务：[Issue #1](https://github.com/PiaJiaBia/FRM2/issues/1)，实现PR：[PR #6](https://github.com/PiaJiaBia/FRM2/pull/6)。
+
 计算器按章节放在 `service` 下，数据层以 DataFrame 为输入输出，controller 串联数据和计算。原有18章公式、注释及教材页码保留在章节计算器中。
 
 ```text
