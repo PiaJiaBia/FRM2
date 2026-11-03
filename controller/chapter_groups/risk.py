@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import norm
 from service import load_chapter
+from .tables import index_columns
 
 
 def number(name, label, default, minimum=None, maximum=None):
@@ -158,7 +159,7 @@ def _result(value,notes=None,metrics=None):
     if isinstance(value,pd.Series): metrics += [dict(name=str(k),value=_scalar(v)) for k,v in value.items()]
     elif isinstance(value,pd.DataFrame):
         frame=value.copy(); frame.columns=frame.columns.map(str)
-        if not isinstance(frame.index,pd.RangeIndex): frame=frame.reset_index(names='row')
+        if not isinstance(frame.index,pd.RangeIndex): frame=index_columns(frame,['row'] * frame.index.nlevels)
         tables=[dict(name='计算结果',columns=list(frame.columns),rows=[{str(k):_scalar(v) for k,v in row.items()} for row in frame.to_dict('records')])]
         numeric=list(frame.select_dtypes(include=np.number).columns)[:8]
         positions=np.unique(np.linspace(0,len(frame)-1,min(len(frame),600)).astype(int)) if len(frame) else []
@@ -197,12 +198,14 @@ def calculate(df,metadata,request):
                 if bracket.shape!=(2,) or not np.isfinite(bracket).all() or bracket[0]>=bracket[1]: raise ValueError('求根区间须为递增有限数对')
                 q=distribution.quantile(alpha,bracket); es=distribution.expected_shortfall(alpha,bracket)
             else:
-                weighted=m.age_weights(df,p['decay']) if model=='age' else df
+                # age_weights输出固定名weight；隔离工作列，用户同名损失列不能被覆盖。
+                target='sample' if model=='age' else c
+                weighted=m.age_weights(pd.DataFrame({'sample':df[c]}),p['decay']) if model=='age' else df
                 weight='weight' if model=='age' else p['weight_column'] if model=='weighted' else None
                 if weight:
                     w=_numbers(weighted,weight).iloc[:,0]
                     if (w<0).any() or w.sum()<=0: raise ValueError('概率权重须非负且总和为正')
-                distribution=m.HistoricalDistribution(weighted,c,weight); q=distribution.quantile(alpha); es=distribution.expected_shortfall(alpha)
+                distribution=m.HistoricalDistribution(weighted,target,weight); q=distribution.quantile(alpha); es=distribution.expected_shortfall(alpha)
             interval=m.quantile_interval(df,c,alpha,p['interval_confidence'])
             value=pd.Series(dict(VaR=q,ES=es,unweighted_interval_lower=interval['lower'],unweighted_interval_upper=interval['upper']))
             notes+=['输入已经是损失，正值表示亏损。顺序统计区间针对原始等权样本，不是加权/KDE区间。']
