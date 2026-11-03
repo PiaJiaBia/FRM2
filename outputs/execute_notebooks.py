@@ -5,15 +5,17 @@ import os
 import sys
 import time
 
-RUNTIME=Path(r'D:\FRM2\outputs\runtime')
-sys.path.insert(0,str(RUNTIME))
+PROJECT=Path(__file__).resolve().parents[1]
+RUNTIME=PROJECT/'outputs'/'runtime'
+if RUNTIME.exists():
+    sys.path.insert(0,str(RUNTIME))
 import nbformat
 from nbclient import NotebookClient
 from jupyter_client import KernelManager
 from jupyter_client.kernelspec import KernelSpecManager
 
-ROOT=Path(r'D:\FRM2\service\Market Risk Measurement and Mangement')
-OUT=Path(r'D:\FRM2\outputs\verification')
+ROOT=PROJECT/'service'/'Market Risk Measurement and Mangement'
+OUT=PROJECT/'outputs'/'verification'
 OUT.mkdir(exist_ok=True)
 kernel=OUT/'kernels'/'python3'
 kernel.mkdir(parents=True,exist_ok=True)
@@ -26,7 +28,8 @@ report=[]
 numbers=[int(x) if x.isdigit() else x for x in sys.argv[1:]] or list(range(1,19))
 for number in numbers:
     path=(ROOT/f'Chapter{number}'/f'Chapter{number}_test.ipynb' if isinstance(number,int)
-          else ROOT.parents[1]/number/f'{number}_test.ipynb')
+          else PROJECT/number if str(number).endswith('.ipynb')
+          else PROJECT/number/f'{number}_test.ipynb')
     nb=nbformat.read(path,as_version=4)
     nbformat.validate(nb)
     manager=KernelManager(kernel_name='python3',kernel_spec_manager=KernelSpecManager(kernel_dirs=[str(kernel.parent)]))
@@ -47,5 +50,5 @@ for number in numbers:
     report.append(row)
     print(f'Chapter {number}: {status} ({row["seconds"]}s)',flush=True)
     if error: print(error[-2200:],flush=True)
-(OUT/('notebook_results_'+ '_'.join(map(str,numbers))+'.json')).write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
+(OUT/('notebook_results_'+ '_'.join(str(x).replace('/', '_').replace('\\', '_') for x in numbers)+'.json')).write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
 sys.exit(any(row['status']=='failed' for row in report))
